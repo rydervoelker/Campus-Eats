@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Eats - 100 Cheap & Healthy Student Dinners</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans pb-24 relative">
+
+  <!-- Top Banner Budget Notification -->
+  <div id="budgetWarningBanner" class="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-slate-950 px-4 py-3 shadow-xl border-b border-amber-600 hidden justify-between items-center transition-all transform duration-300">
+    <div class="flex items-center gap-2 text-sm font-bold max-w-4xl mx-auto">
+      <span class="text-lg">⚠️</span>
+      <span id="bannerWarningText">Budget Warning: Adding this item exceeds your set budget limit!</span>
+    </div>
+    <button onclick="dismissBudgetBanner()" class="text-slate-950 font-black hover:opacity-75 text-lg px-2">✕</button>
+  </div>
+
+  <!-- Minimalist Hero Header -->
+  <header class="relative bg-gradient-to-b from-slate-900 via-slate-800 to-emerald-950 text-white py-14 px-4 text-center shadow-lg border-b border-emerald-900/50">
+    <div class="relative z-10 max-w-3xl mx-auto space-y-3">
+      <span class="inline-block bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-md">
+        Student Budget Meal Finder
+      </span>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight drop-shadow-sm">🎓 Campus Eats</h1>
+      <p class="text-slate-300 text-base sm:text-lg max-w-xl mx-auto font-normal">
+        100 cheap, healthy, student-tested dinners custom fit to your wallet, fridge space, and appliances.
+      </p>
+      
+      <!-- Quick Stats Badges -->
+      <div class="flex flex-wrap justify-center gap-2 pt-2 text-xs font-semibold text-slate-300">
+        <span class="bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700/80">⏱️ 5–25 Min Prep</span>
+        <span class="bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700/80">💰 $1.50–$6.00 Meals</span>
+        <span class="bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700/80">🥑 Pantry Matcher</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Top Action Bar -->
+  <div class="max-w-7xl mx-auto px-4 mt-6 flex flex-wrap gap-3 justify-between items-center">
+    <div class="flex flex-wrap gap-2">
+      <button onclick="setActiveView('all')" id="btnViewAll" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all">
+        🍽️ Browse All 100 Recipes
+      </button>
+      <button onclick="setActiveView('favorites')" id="btnViewFavorites" class="bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center gap-1.5">
+        ❤️ Saved Favorites (<span id="favoritesCount">0</span>)
+      </button>
+      <button onclick="togglePantryModal()" class="bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center gap-1.5">
+        🥑 What's in My Fridge? (Pantry Mode)
+      </button>
+    </div>
+    <button onclick="toggleShoppingListModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center gap-2">
+      🛒 Grocery List (<span id="cartCount">0</span>)
+    </button>
+  </div>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-4 gap-8">
+    
+    <!-- Left Column: Filters Sidebar -->
+    <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit lg:col-span-1 space-y-6">
+      <h2 class="text-xl font-bold text-slate-900 border-b pb-2">Filter Options</h2>
+
+      <!-- Search Bar -->
+      <div>
+        <label class="block font-semibold text-sm mb-1 text-slate-700">Search Recipe or Ingredient:</label>
+        <input type="text" id="searchInput" oninput="updateFilters()" placeholder="e.g. Chicken, Rice, Eggs..." 
+               class="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+      </div>
+
+      <!-- Theme Category Dropdown -->
+      <div>
+        <label class="block font-semibold text-sm mb-1 text-slate-700">Meal Theme / Category:</label>
+        <select id="themeSelect" onchange="updateFilters()" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+          <option value="all">All Categories</option>
+          <option value="dorm">⚡ Dorm-Only Hacks</option>
+          <option value="gym">🏋️ Gym Fuel / High-Protein</option>
+          <option value="takeout">🥡 Takeout Dupes under $3.50</option>
+          <option value="comfort">🧀 Budget Comfort Food</option>
+          <option value="global">🌍 Global Flavors on a Shoestring</option>
+        </select>
+      </div>
+
+      <!-- Unified Cart Budget Slider -->
+      <div>
+        <label class="block font-semibold text-sm text-slate-700 mb-1">Max Grocery Cart Budget:</label>
+        <label class="block text-xs mb-1 text-slate-500">
+          Budget Limit: <span id="budgetValue" class="text-emerald-600 font-bold text-sm">$40.00</span>
+        </label>
+        <input type="range" id="budgetRange" min="10" max="100" step="5" value="40" 
+               class="w-full accent-emerald-600 cursor-pointer" oninput="updateFilters()">
+        <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+          <span>$10.00</span>
+          <span>$100.00</span>
+        </div>
+      </div>
+
+      <!-- Roommate Cost Splitter -->
+      <div>
+        <label class="block font-semibold text-sm mb-1 text-slate-700">Roommate Cost Splitter:</label>
+        <select id="roommateSelect" onchange="updateFilters()" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+          <option value="1">Just Me (1 Person)</option>
+          <option value="2">2 Roommates (Split 50/50)</option>
+          <option value="3">3 Roommates (Split 3 ways)</option>
+          <option value="4">4 Roommates (Split 4 ways)</option>
+        </select>
+      </div>
+
+      <!-- Cooking Style -->
+      <div>
+        <label class="block font-semibold text-sm mb-1 text-slate-700">Cooking Style:</label>
+        <select id="styleSelect" onchange="updateFilters()" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+          <option value="any">All Meal Types</option>
+          <option value="single">Quick Single-Night Dinners</option>
+          <option value="batch">Bulk Batch Prep / Leftovers</option>
+        </select>
+      </div>
+
+      <!-- Cook Time -->
+      <div>
+        <label class="block font-semibold text-sm mb-1 text-slate-700">Max Cook Time:</label>
+        <select id="timeSelect" onchange="updateFilters()" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+          <option value="any">Any Time</option>
+          <option value="10">10 minutes or less (Ultra Fast)</option>
+          <option value="20">20 minutes or less</option>
+          <option value="30">30 minutes or less</option>
+        </select>
+      </div>
+
+      <!-- Pantry Staples Checkbox -->
+      <div class="pt-2 border-t border-slate-100">
+        <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+          <input type="checkbox" id="excludeStaples" class="accent-emerald-600 rounded" onchange="updateFilters()" checked>
+          Exclude basic pantry staples from list (salt, oil, soy sauce, basic spices)
+        </label>
+      </div>
+
+      <!-- Collapsible Advanced Filters Accordion -->
+      <div class="border-t pt-4">
+        <button onclick="toggleAdvancedFilters()" class="w-full flex justify-between items-center text-sm font-bold text-slate-800 hover:text-emerald-600 transition-colors">
+          <span>⚙️ Kitchen & Diet Filters</span>
+          <span id="accordionIcon" class="text-xs">▼</span>
+        </button>
+
+        <div id="advancedFiltersContent" class="hidden space-y-4 mt-4 pt-2">
+          <div>
+            <label class="block font-semibold text-xs mb-2 text-slate-700">Appliances You Have:</label>
+            <div class="space-y-1.5 text-xs text-slate-600">
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="stove" class="appliance-checkbox accent-emerald-600 rounded" onchange="updateFilters()" checked> Stove / Hot Plate</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="microwave" class="appliance-checkbox accent-emerald-600 rounded" onchange="updateFilters()" checked> Microwave</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="airfryer" class="appliance-checkbox accent-emerald-600 rounded" onchange="updateFilters()" checked> Air Fryer</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="oven" class="appliance-checkbox accent-emerald-600 rounded" onchange="updateFilters()" checked> Oven</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="slowcooker" class="appliance-checkbox accent-emerald-600 rounded" onchange="updateFilters()" checked> Slow Cooker / Instant Pot</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="toaster" class="appliance-checkbox accent-emerald-600 rounded" onchange="updateFilters()" checked> Toaster / Toaster Oven</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="kettle" class="appliance-checkbox accent-emerald-600 rounded" onchange="updateFilters()" checked> Electric Kettle</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-xs mb-2 text-slate-700">Dietary & Diets:</label>
+            <div class="space-y-1.5 text-xs text-slate-600">
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="high-protein" class="diet-checkbox accent-emerald-600 rounded" onchange="updateFilters()"> High-Protein (30g+)</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="keto" class="diet-checkbox accent-emerald-600 rounded" onchange="updateFilters()"> Keto / Low-Carb</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="vegetarian" class="diet-checkbox accent-emerald-600 rounded" onchange="updateFilters()"> Vegetarian</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="vegan" class="diet-checkbox accent-emerald-600 rounded" onchange="updateFilters()"> Vegan</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="dairy-free" class="diet-checkbox accent-emerald-600 rounded" onchange="updateFilters()"> Dairy-Free</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="gluten-free" class="diet-checkbox accent-emerald-600 rounded" onchange="updateFilters()"> Gluten-Free</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="nut-free" class="diet-checkbox accent-emerald-600 rounded" onchange="updateFilters()"> Nut-Free</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Center/Right Column: Recipe Grid -->
+    <section class="lg:col-span-3 space-y-6">
+      <div class="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 id="gridHeaderTitle" class="text-xl font-bold text-slate-900">Matching Recipes</h2>
+          <span id="resultsCount" class="text-xs font-semibold text-emerald-700">0 recipes found</span>
+        </div>
+      </div>
+
+      <div id="recipeContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </section>
+
+  </main>
+
+  <!-- Pantry Mode Modal -->
+  <div id="pantryModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <div>
+          <h3 class="text-xl font-bold text-slate-900">🥑 Pantry Mode: What's in Your Fridge?</h3>
+          <p class="text-xs text-slate-500">Tap ingredients you already have to find matching recipes instantly.</p>
+        </div>
+        <button onclick="togglePantryModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+      </div>
+      
+      <div class="overflow-y-auto flex-grow space-y-4 pr-2">
+        <div>
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Proteins & Dairy</h4>
+          <div class="flex flex-wrap gap-2" id="pantryCategoryProteins"></div>
+        </div>
+        <div>
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Carbs & Grains</h4>
+          <div class="flex flex-wrap gap-2" id="pantryCategoryCarbs"></div>
+        </div>
+        <div>
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Pantry & Produce</h4>
+          <div class="flex flex-wrap gap-2" id="pantryCategoryProduce"></div>
+        </div>
+      </div>
+
+      <div class="border-t pt-4 mt-4 flex gap-3 justify-between items-center">
+        <span id="selectedIngredientsCount" class="text-xs text-slate-500 font-semibold">0 ingredients selected</span>
+        <div class="flex gap-2">
+          <button onclick="clearPantrySelections()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-lg text-xs font-semibold transition-colors">Clear All</button>
+          <button onclick="applyPantryFilter()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors">Find Matching Recipes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shopping List Modal -->
+  <div id="shoppingListModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center border-b pb-3 mb-2">
+        <div>
+          <h3 class="text-xl font-bold text-slate-900">🛒 Your Grocery List</h3>
+          <p class="text-xs text-slate-500">Estimated Total: <strong id="cartEstTotal" class="text-emerald-600 font-extrabold text-sm">$0.00</strong></p>
+        </div>
+        <button onclick="toggleShoppingListModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+      </div>
+
+      <!-- WinCo Bulk Saver Tip Banner -->
+      <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 my-2 text-xs text-emerald-900 flex items-start gap-2">
+        <span class="text-base">💡</span>
+        <div>
+          <strong class="font-bold">WinCo Saver Tip:</strong> Buy grains, rice, pasta, dried beans, and spices in <strong>WinCo Bulk Bins</strong> to buy exact quantities and cut ingredient costs in half!
+        </div>
+      </div>
+
+      <div id="shoppingListItems" class="overflow-y-auto flex-grow space-y-2 text-sm text-slate-700 pr-2 my-2">
+        <p class="text-slate-400 text-center py-8">Your shopping list is currently empty. Click "+ Add to Grocery List" on any recipe!</p>
+      </div>
+
+      <div class="border-t pt-4 mt-2 flex gap-3">
+        <button onclick="copyShoppingList()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors">Copy List to Clipboard</button>
+        <button onclick="clearShoppingList()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function ing(name, qty, unit, staple = false) {
+      return { name, qty, unit, staple };
+    }
+
+    const pantryProteins = ["eggs", "chicken breast", "ground beef", "ground turkey", "canned tuna", "tofu", "cheese", "greek yogurt", "bacon", "salmon", "sausage", "pork chop", "shrimp"];
+    const pantryCarbs = ["rice", "pasta", "bread", "tortillas", "potatoes", "sweet potato", "ramen", "oats", "flatbread", "english muffin", "couscous"];
+    const pantryProduce = ["black beans", "chickpeas", "spinach", "tomatoes", "broccoli", "cucumber", "salsa", "peanut butter", "avocado", "corn", "peppers", "asparagus", "kimchi"];
+
+    // CUISINE MINIMALIST GRADIENTS & EMOJIS
+    const styleMap = {
+      "American": { gradient: "from-amber-500/20 to-orange-500/10 border-orange-200/60", icon: "🧀" },
+      "Mexican": { gradient: "from-emerald-500/20 to-teal-500/10 border-emerald-200/60", icon: "🌮" },
+      "Asian": { gradient: "from-rose-500/20 to-amber-500/10 border-rose-200/60", icon: "🍜" },
+      "Italian": { gradient: "from-red-500/20 to-emerald-500/10 border-red-200/60", icon: "🍝" },
+      "Mediterranean": { gradient: "from-sky-500/20 to-indigo-500/10 border-sky-200/60", icon: "🥗" },
+      "Indian": { gradient: "from-amber-600/20 to-yellow-500/10 border-amber-300/60", icon: "🍛" },
+      "Middle Eastern": { gradient: "from-teal-600/20 to-emerald-500/10 border-teal-300/60", icon: "🥙" },
+      "Spanish": { gradient: "from-yellow-500/20 to-orange-500/10 border-yellow-300/60", icon: "🥘" },
+      "French": { gradient: "from-indigo-500/20 to-blue-500/10 border-indigo-200/60", icon: "🥐" },
+      "Caribbean": { gradient: "from-emerald-600/20 to-lime-500/10 border-emerald-300/60", icon: "🍲" }
+    };
+
+    // REAL-WORLD GROCERY STORE CONVERTER MAP (WATER EXCLUDED)
+    function getStoreItemName(rawName) {
+      const n = rawName.toLowerCase();
+      if (n === "water") return null; // Free tap water excluded from grocery purchases
+      if (n.includes("egg")) return { storeLabel: "1 Dozen Eggs", approxCost: 2.20 };
+      if (n.includes("milk")) return { storeLabel: "1 Half-Gallon Milk", approxCost: 1.90 };
+      if (n.includes("cheese")) return { storeLabel: "1 Bag Shredded Cheese (8oz)", approxCost: 2.30 };
+      if (n.includes("chicken")) return { storeLabel: "1 Pack Fresh Chicken Breasts (1.5 lbs)", approxCost: 4.80 };
+      if (n.includes("ground beef")) return { storeLabel: "1 lb Lean Ground Beef", approxCost: 4.50 };
+      if (n.includes("ground turkey")) return { storeLabel: "1 lb Lean Ground Turkey", approxCost: 3.80 };
+      if (n.includes("pork chop")) return { storeLabel: "1 Pack Pork Chops", approxCost: 4.20 };
+      if (n.includes("salmon")) return { storeLabel: "1 Salmon Fillet Pack", approxCost: 5.80 };
+      if (n.includes("shrimp")) return { storeLabel: "1 Bag Frozen Shrimp (12oz)", approxCost: 4.90 };
+      if (n.includes("bacon")) return { storeLabel: "1 Pack Thick-Cut Bacon", approxCost: 3.90 };
+      if (n.includes("rice")) return { storeLabel: "1 Bag White or Brown Rice (2 lbs)", approxCost: 1.80 };
+      if (n.includes("pasta") || n.includes("macaroni")) return { storeLabel: "1 Box Pasta (16oz)", approxCost: 1.20 };
+      if (n.includes("bread")) return { storeLabel: "1 Loaf Sandwich Bread", approxCost: 1.60 };
+      if (n.includes("tortilla")) return { storeLabel: "1 Pack Flour/Corn Tortillas", approxCost: 1.90 };
+      if (n.includes("potato")) return { storeLabel: "1 Bag Yellow/Russet Potatoes (3 lbs)", approxCost: 2.50 };
+      if (n.includes("black bean") || n.includes("chickpea")) return { storeLabel: "1 Can Beans (15oz)", approxCost: 0.89 };
+      if (n.includes("salsa")) return { storeLabel: "1 Jar Salsa", approxCost: 1.80 };
+      if (n.includes("greek yogurt")) return { storeLabel: "1 Tub Greek Yogurt (32oz)", approxCost: 3.40 };
+      if (n.includes("butter")) return { storeLabel: "1 Pack Salted Butter", approxCost: 2.80 };
+      if (n.includes("spinach") || n.includes("broccoli") || n.includes("pepper")) return { storeLabel: "1 Bag Fresh Veggies / Produce", approxCost: 1.75 };
+      if (n.includes("oat")) return { storeLabel: "1 Container Rolled Oats", approxCost: 2.10 };
+      if (n.includes("ramen")) return { storeLabel: "1 Pack Instant Ramen", approxCost: 0.50 };
+      if (n.includes("peanut butter")) return { storeLabel: "1 Jar Creamy Peanut Butter", approxCost: 2.20 };
+      if (n.includes("flatbread")) return { storeLabel: "1 Pack Flatbread / Pita", approxCost: 2.40 };
+      return { storeLabel: `1 Item: ${rawName.charAt(0).toUpperCase() + rawName.slice(1)}`, approxCost: 1.80 };
+    }
+
+    // 100 FULLY EXPLICIT RECIPES
+    const recipes = [
+      // DORM HACKS (1-20)
+      { id: 1, title: "3-Minute Microwave Mug Mac & Cheese", cuisine: "American", theme: "dorm", cost: 1.50, time: 5, appliances: ["microwave"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "nut-free"], description: "Elbow macaroni cooked in a mug with water, milk, and cheddar.", nutrition: { cals: 320, protein: 12, carbs: 45 }, ingredients: [ing("elbow macaroni", 0.5, "cups"), ing("cheddar cheese", 0.3, "cups"), ing("milk", 0.25, "cups"), ing("water", 0.5, "cups"), ing("butter", 1, "tbsp", true)], instructions: ["Microwave macaroni in water 2 mins.", "Drain water.", "Stir in milk and cheese, microwave 30s."] },
+      { id: 2, title: "10-Minute Egg & Sesame Fried Rice", cuisine: "Asian", theme: "dorm", cost: 2.20, time: 10, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "dairy-free", "nut-free"], description: "Protein-packed dorm staple with pre-cooked rice, eggs, and peas.", nutrition: { cals: 380, protein: 14, carbs: 52 }, ingredients: [ing("rice", 1, "cups"), ing("eggs", 2, ""), ing("peas", 0.25, "cups"), ing("soy sauce", 1, "tbsp", true), ing("sesame oil", 1, "tsp", true)], instructions: ["Scramble eggs in skillet.", "Add rice and peas.", "Toss with soy sauce and sesame oil."] },
+      { id: 3, title: "Kettle Steamed Couscous & Chickpea Bowl", cuisine: "Mediterranean", theme: "dorm", cost: 2.40, time: 6, appliances: ["kettle"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegan", "vegetarian", "dairy-free"], description: "Couscous steams in 5 minutes using kettle water tossed with chickpeas.", nutrition: { cals: 350, protein: 13, carbs: 60 }, ingredients: [ing("couscous", 0.75, "cups"), ing("chickpeas", 0.5, "cups"), ing("olive oil", 1, "tbsp", true), ing("lemon juice", 1, "tbsp"), ing("salt", 1, "pinch", true)], instructions: ["Pour boiling kettle water over couscous.", "Cover 5 minutes.", "Fluff with fork and stir in chickpeas."] },
+      { id: 4, title: "Instant Kettle Ramen Upgrade", cuisine: "Asian", theme: "dorm", cost: 2.00, time: 8, appliances: ["kettle"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["dairy-free", "nut-free"], description: "Cheap ramen elevated with kettle water, soft egg, and spinach.", nutrition: { cals: 410, protein: 12, carbs: 55 }, ingredients: [ing("ramen", 1, "pack"), ing("eggs", 1, ""), ing("spinach", 0.5, "cups"), ing("soy sauce", 1, "tbsp", true)], instructions: ["Pour boiling kettle water over ramen.", "Cover 3 minutes.", "Top with egg and sriracha."] },
+      { id: 5, title: "Microwave Loaded Sweet Potato", cuisine: "American", theme: "dorm", cost: 2.10, time: 8, appliances: ["microwave"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "gluten-free"], description: "Sweet potato microwaved tender and stuffed with black beans and greek yogurt.", nutrition: { cals: 310, protein: 11, carbs: 58 }, ingredients: [ing("sweet potato", 1, ""), ing("black beans", 0.5, "cups"), ing("greek yogurt", 2, "tbsp"), ing("salsa", 2, "tbsp")], instructions: ["Poke potato with fork.", "Microwave HIGH 6 mins.", "Stuff with black beans and yogurt."] },
+      { id: 6, title: "High-Protein Microwave Egg Mug Meal", cuisine: "American", theme: "dorm", cost: 2.50, time: 4, appliances: ["microwave"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["keto", "gluten-free", "high-protein"], description: "Eggs, turkey deli slices, spinach, and cheddar scrambled in a mug.", nutrition: { cals: 290, protein: 24, carbs: 3 }, ingredients: [ing("eggs", 3, ""), ing("cheese", 0.25, "cups"), ing("spinach", 0.5, "cups"), ing("salt", 1, "pinch", true)], instructions: ["Whisk eggs and spinach in mug.", "Microwave 80 seconds.", "Top with cheese."] },
+      { id: 7, title: "Microwave Cheesy Tuna Melt Bowl", cuisine: "American", theme: "dorm", cost: 2.20, time: 5, appliances: ["microwave"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["keto", "gluten-free", "high-protein"], description: "Canned tuna mixed with mayo, relish, and melted cheddar.", nutrition: { cals: 340, protein: 26, carbs: 4 }, ingredients: [ing("canned tuna", 1, "can"), ing("cheese", 0.25, "cups"), ing("mayo", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Mix tuna and mayo in bowl.", "Top with cheddar.", "Microwave 45 seconds."] },
+      { id: 8, title: "Toaster Oven Caprese Flatbread Pizza", cuisine: "Italian", theme: "dorm", cost: 3.10, time: 10, appliances: ["toaster"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "nut-free"], description: "Flatbread topped with pesto, tomato slices, and mozzarella.", nutrition: { cals: 390, protein: 15, carbs: 42 }, ingredients: [ing("flatbread", 1, ""), ing("cheese", 0.3, "cups"), ing("tomatoes", 0.5, "cups"), ing("pesto", 1, "tbsp")], instructions: ["Spread pesto on flatbread.", "Top with tomatoes and cheese.", "Toast 8 minutes."] },
+      { id: 9, title: "English Muffin Mini Pizzas", cuisine: "Italian", theme: "dorm", cost: 2.00, time: 8, appliances: ["toaster"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "nut-free"], description: "English muffin halves topped with marinara and melted mozzarella.", nutrition: { cals: 280, protein: 12, carbs: 34 }, ingredients: [ing("english muffin", 1, ""), ing("cheese", 0.3, "cups"), ing("tomatoes", 0.25, "cups"), ing("oregano", 1, "pinch", true)], instructions: ["Toast muffin halves.", "Spoon marinara and cheese.", "Toast 3 minutes."] },
+      { id: 10, title: "Chocolate PB Overnight Oats", cuisine: "American", theme: "dorm", cost: 1.80, time: 5, appliances: [], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "high-protein"], description: "Oats soaked overnight in milk, cocoa, and peanut butter.", nutrition: { cals: 380, protein: 15, carbs: 50 }, ingredients: [ing("oats", 0.5, "cups"), ing("milk", 0.75, "cups"), ing("peanut butter", 1, "tbsp"), ing("honey", 1, "tsp", true)], instructions: ["Combine oats, milk, cocoa, and peanut butter in jar.", "Refrigerate overnight.", "Eat cold."] },
+      { id: 11, title: "Peanut Butter & Banana Toast", cuisine: "American", theme: "dorm", cost: 1.50, time: 5, appliances: ["toaster"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegan", "vegetarian", "dairy-free"], description: "Toast smeared with peanut butter and topped with banana.", nutrition: { cals: 310, protein: 9, carbs: 42 }, ingredients: [ing("bread", 2, "slices"), ing("peanut butter", 2, "tbsp"), ing("banana", 1, "")], instructions: ["Toast bread.", "Spread peanut butter.", "Top with sliced banana."] },
+      { id: 12, title: "Microwave Veggie & Cheese Nachos", cuisine: "Mexican", theme: "dorm", cost: 2.30, time: 3, appliances: ["microwave"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "gluten-free"], description: "Tortilla chips topped with black beans, corn, and melted cheddar.", nutrition: { cals: 420, protein: 14, carbs: 56 }, ingredients: [ing("tortillas", 2, "handfuls"), ing("black beans", 0.5, "cups"), ing("cheese", 0.3, "cups"), ing("salsa", 2, "tbsp")], instructions: ["Layer chips, beans, and cheese.", "Microwave 50 seconds.", "Serve with salsa."] },
+      { id: 13, title: "Kettle Oatmeal with Berries", cuisine: "American", theme: "dorm", cost: 1.90, time: 5, appliances: ["kettle"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "vegan"], description: "Quick oats cooked with kettle water, protein powder, and berries.", nutrition: { cals: 270, protein: 12, carbs: 48 }, ingredients: [ing("oats", 0.5, "cups"), ing("milk", 0.75, "cups"), ing("honey", 1, "tsp", true)], instructions: ["Pour boiling water over oats.", "Cover 3 minutes.", "Stir in berries."] },
+      { id: 14, title: "10-Minute Egg Drop Soup", cuisine: "Asian", theme: "dorm", cost: 1.60, time: 8, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["keto", "vegetarian", "gluten-free"], description: "Whisking eggs into simmering chicken broth with soy sauce.", nutrition: { cals: 190, protein: 13, carbs: 5 }, ingredients: [ing("eggs", 2, ""), ing("soy sauce", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Bring broth to boil.", "Drizzle beaten eggs gently.", "Season with soy sauce."] },
+      { id: 15, title: "Microwave Veggie Mug Frittata", cuisine: "American", theme: "dorm", cost: 1.90, time: 3, appliances: ["microwave"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["keto", "vegetarian", "high-protein"], description: "Mug omelet microwaved in 90 seconds with spinach and cheddar.", nutrition: { cals: 260, protein: 18, carbs: 3 }, ingredients: [ing("eggs", 2, ""), ing("spinach", 0.5, "cups"), ing("cheese", 0.2, "cups"), ing("salt", 1, "pinch", true)], instructions: ["Whisk eggs, spinach, and cheese in mug.", "Microwave HIGH 80 seconds."] },
+      { id: 16, title: "Air Fryer Grilled Cheese & Bacon", cuisine: "American", theme: "dorm", cost: 2.90, time: 8, appliances: ["airfryer"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["nut-free"], description: "Butter-brushed sandwich with cheddar cheese and bacon air fried.", nutrition: { cals: 450, protein: 18, carbs: 32 }, ingredients: [ing("bread", 2, "slices"), ing("cheese", 0.3, "cups"), ing("bacon", 2, "strips"), ing("butter", 1, "tbsp", true)], instructions: ["Assemble sandwich with bacon and cheese.", "Butter outside.", "Air fry at 370°F for 7 mins."] },
+      { id: 17, title: "Simple Microwave Black Bean Burrito", cuisine: "Mexican", theme: "dorm", cost: 1.80, time: 4, appliances: ["microwave"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian"], description: "Flour tortilla rolled with black beans, salsa, and melted cheddar.", nutrition: { cals: 360, protein: 14, carbs: 50 }, ingredients: [ing("tortillas", 1, ""), ing("black beans", 0.5, "cups"), ing("cheese", 0.2, "cups"), ing("salsa", 2, "tbsp")], instructions: ["Fill tortilla with beans and cheese.", "Roll tightly.", "Microwave 45 seconds."] },
+      { id: 18, title: "Kettle Poached Egg Ramen", cuisine: "Asian", theme: "dorm", cost: 2.10, time: 7, appliances: ["kettle"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["dairy-free"], description: "Ramen cooked in kettle water with a soft egg gently poached.", nutrition: { cals: 400, protein: 14, carbs: 54 }, ingredients: [ing("ramen", 1, "pack"), ing("eggs", 1, ""), ing("soy sauce", 1, "tbsp", true)], instructions: ["Pour boiling water over ramen.", "Crack egg directly into broth.", "Cover 4 minutes."] },
+      { id: 19, title: "Toaster Garlic Butter Pita Chips", cuisine: "Mediterranean", theme: "dorm", cost: 1.40, time: 6, appliances: ["toaster"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian"], description: "Pita wedges brushed with garlic butter and toasted crispy.", nutrition: { cals: 250, protein: 6, carbs: 38 }, ingredients: [ing("flatbread", 1, ""), ing("butter", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Cut pita into triangles.", "Brush with garlic butter.", "Toast until golden."] },
+      { id: 20, title: "Microwave Cheesy Rice & Broccoli", cuisine: "American", theme: "dorm", cost: 2.10, time: 5, appliances: ["microwave"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "gluten-free"], description: "White rice microwaved with steam-fresh broccoli and cheddar.", nutrition: { cals: 320, protein: 10, carbs: 48 }, ingredients: [ing("rice", 1, "cups"), ing("broccoli", 0.5, "cups"), ing("cheese", 0.25, "cups"), ing("butter", 1, "tbsp", true)], instructions: ["Combine rice and broccoli.", "Microwave 90 seconds.", "Stir in cheddar cheese."] },
+
+      // GYM FUEL (21-40)
+      { id: 21, title: "Ground Turkey & Taco Rice Bowl", cuisine: "Mexican", theme: "gym", cost: 4.50, time: 20, appliances: ["stove"], style: "batch", onePot: false, lateNight: false, winco: true, tags: ["dairy-free", "gluten-free", "high-protein"], description: "Ground turkey cooked with taco seasoning over rice and beans.", nutrition: { cals: 520, protein: 38, carbs: 55 }, ingredients: [ing("ground turkey", 6, "oz"), ing("rice", 1, "cups"), ing("black beans", 0.5, "cups"), ing("salsa", 2, "tbsp"), ing("olive oil", 1, "tbsp", true)], instructions: ["Brown turkey in skillet with taco seasoning.", "Layer rice and beans in bowl.", "Top with turkey and salsa."] },
+      { id: 22, title: "Air Fryer Crispy Salmon Bites", cuisine: "American", theme: "gym", cost: 5.80, time: 15, appliances: ["airfryer"], style: "single", onePot: true, lateNight: false, winco: false, tags: ["gluten-free", "dairy-free", "high-protein", "keto"], description: "Cubed salmon tossed in soy sauce and air fried until golden.", nutrition: { cals: 460, protein: 34, carbs: 4 }, ingredients: [ing("salmon", 6, "oz"), ing("soy sauce", 1, "tbsp", true), ing("olive oil", 1, "tbsp", true), ing("lemon", 0.5, "")], instructions: ["Cube salmon fillet.", "Toss with soy sauce and oil.", "Air fry at 400°F for 9 minutes."] },
+      { id: 23, title: "Sheet Pan Honey Mustard Chicken", cuisine: "American", theme: "gym", cost: 3.90, time: 25, appliances: ["oven"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["dairy-free", "gluten-free", "high-protein"], description: "Chicken breast and baby potatoes roasted in honey mustard sauce.", nutrition: { cals: 490, protein: 42, carbs: 44 }, ingredients: [ing("chicken breast", 6, "oz"), ing("potatoes", 1, "cup"), ing("honey", 1, "tbsp", true), ing("olive oil", 1, "tbsp", true)], instructions: ["Mix honey and mustard.", "Toss with chicken and potatoes.", "Bake at 400°F for 22 mins."] },
+      { id: 24, title: "Air Fryer Chicken Fajita Wrap", cuisine: "Mexican", theme: "gym", cost: 3.80, time: 15, appliances: ["airfryer"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["high-protein"], description: "Sliced chicken and peppers air fried fast and wrapped in tortilla.", nutrition: { cals: 440, protein: 36, carbs: 38 }, ingredients: [ing("chicken breast", 6, "oz"), ing("peppers", 1, "cup"), ing("tortillas", 1, ""), ing("olive oil", 1, "tbsp", true)], instructions: ["Air fry chicken and peppers at 380°F 12 mins.", "Wrap in warm tortilla."] },
+      { id: 25, title: "Keto Beef & Cheese Omelet", cuisine: "American", theme: "gym", cost: 3.20, time: 10, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["keto", "gluten-free", "high-protein"], description: "Low-carb dinner with ground beef, 3 eggs, and cheddar cheese.", nutrition: { cals: 510, protein: 38, carbs: 2 }, ingredients: [ing("ground beef", 4, "oz"), ing("eggs", 3, ""), ing("cheese", 0.3, "cups"), ing("butter", 1, "tbsp", true)], instructions: ["Cook ground beef.", "Pour whisked eggs into skillet.", "Add beef and cheese, fold."] },
+      { id: 26, title: "Air Fryer Chicken Tenders & Fries", cuisine: "American", theme: "gym", cost: 3.90, time: 18, appliances: ["airfryer"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["dairy-free", "high-protein"], description: "Crispy chicken tenders and frozen french fries air fried together.", nutrition: { cals: 480, protein: 35, carbs: 42 }, ingredients: [ing("chicken breast", 6, "oz"), ing("potatoes", 1, "cup"), ing("olive oil", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Season chicken tenders.", "Air fry tenders and fries at 390°F for 16 mins."] },
+      { id: 27, title: "Slow Cooker BBQ Pulled Chicken", cuisine: "American", theme: "gym", cost: 3.50, time: 10, appliances: ["slowcooker"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["dairy-free", "gluten-free", "high-protein"], description: "Tender chicken breasts slow cooked in BBQ sauce and shredded.", nutrition: { cals: 420, protein: 40, carbs: 35 }, ingredients: [ing("chicken breast", 6, "oz"), ing("bread", 2, "slices"), ing("salt", 1, "pinch", true)], instructions: ["Slow cook chicken in BBQ sauce 5 hours.", "Shred with forks and serve on bun."] },
+      { id: 28, title: "Keto Ground Beef & Cauliflower Skillet", cuisine: "American", theme: "gym", cost: 3.90, time: 15, appliances: ["stove"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["keto", "gluten-free", "high-protein"], description: "Ground beef browned with cauliflower rice and melted cheddar.", nutrition: { cals: 450, protein: 36, carbs: 6 }, ingredients: [ing("ground beef", 6, "oz"), ing("cheese", 0.3, "cups"), ing("olive oil", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Brown beef in skillet.", "Stir in cauliflower rice 5 mins.", "Melt cheddar on top."] },
+      { id: 29, title: "Pesto Chicken & Pasta Bowl", cuisine: "Italian", theme: "gym", cost: 4.20, time: 15, appliances: ["stove"], style: "batch", onePot: false, lateNight: false, winco: true, tags: ["high-protein"], description: "Chicken breast bites tossed with pasta, pesto, and cherry tomatoes.", nutrition: { cals: 530, protein: 39, carbs: 52 }, ingredients: [ing("chicken breast", 6, "oz"), ing("pasta", 1, "cups"), ing("pesto", 2, "tbsp"), ing("tomatoes", 0.5, "cups")], instructions: ["Boil pasta.", "Sear chicken cubes.", "Toss pasta, chicken, and pesto together."] },
+      { id: 30, title: "Greek Gyro Pita Wrap", cuisine: "Mediterranean", theme: "gym", cost: 3.50, time: 10, appliances: ["stove"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["high-protein"], description: "Warm pita stuffed with seasoned pan-fried chicken strips and tzatziki.", nutrition: { cals: 460, protein: 35, carbs: 45 }, ingredients: [ing("chicken breast", 6, "oz"), ing("flatbread", 1, ""), ing("cucumber", 0.5, "cups"), ing("greek yogurt", 2, "tbsp")], instructions: ["Pan-fry chicken strips with oregano 6 mins.", "Stuff into pita with tzatziki and cucumber."] },
+      { id: 31, title: "Korean Beef & Egg Rice Bowl", cuisine: "Asian", theme: "gym", cost: 4.10, time: 15, appliances: ["stove"], style: "single", onePot: false, lateNight: false, winco: true, tags: ["dairy-free", "high-protein"], description: "Sweet soy-glazed ground beef over rice topped with a fried egg.", nutrition: { cals: 510, protein: 36, carbs: 54 }, ingredients: [ing("ground beef", 6, "oz"), ing("rice", 1, "cups"), ing("eggs", 1, ""), ing("soy sauce", 1, "tbsp", true)], instructions: ["Brown beef with soy sauce and sugar.", "Fry egg.", "Serve over hot rice."] },
+      { id: 32, title: "Air Fryer Salmon & Asparagus", cuisine: "American", theme: "gym", cost: 6.20, time: 12, appliances: ["airfryer"], style: "single", onePot: true, lateNight: false, winco: false, tags: ["keto", "gluten-free", "high-protein"], description: "Salmon fillet air fried alongside fresh asparagus with lemon.", nutrition: { cals: 440, protein: 38, carbs: 5 }, ingredients: [ing("salmon", 6, "oz"), ing("asparagus", 0.75, "cups"), ing("lemon", 0.5, ""), ing("olive oil", 1, "tbsp", true)], instructions: ["Season salmon and asparagus.", "Air fry at 390°F for 10 minutes."] },
+      { id: 33, title: "Slow Cooker Carnitas Pork Tacos", cuisine: "Mexican", theme: "gym", cost: 3.10, time: 10, appliances: ["slowcooker"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["dairy-free", "gluten-free", "high-protein"], description: "Pork shoulder slow cooked until tender and shredded into tortillas.", nutrition: { cals: 480, protein: 35, carbs: 36 }, ingredients: [ing("pork chop", 6, "oz"), ing("tortillas", 2, ""), ing("salsa", 2, "tbsp"), ing("salt", 1, "pinch", true)], instructions: ["Slow cook pork with citrus and spices 7 hours.", "Shred and serve in tortillas."] },
+      { id: 34, title: "Bacon-Wrapped Chicken Tenders", cuisine: "American", theme: "gym", cost: 4.80, time: 16, appliances: ["airfryer"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["keto", "gluten-free", "high-protein"], description: "Chicken tenders wrapped in bacon strips and air fried crispy.", nutrition: { cals: 490, protein: 44, carbs: 1 }, ingredients: [ing("chicken breast", 6, "oz"), ing("bacon", 3, "strips"), ing("salt", 1, "pinch", true)], instructions: ["Wrap bacon around chicken tenders.", "Air fry at 380°F for 15 mins."] },
+      { id: 35, title: "Turkey Meatballs & Marinara Dip", cuisine: "Italian", theme: "gym", cost: 3.60, time: 12, appliances: ["airfryer"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["dairy-free", "high-protein"], description: "Turkey meatballs air fried crispy and dipped in warm marinara.", nutrition: { cals: 410, protein: 38, carbs: 14 }, ingredients: [ing("ground turkey", 6, "oz"), ing("tomatoes", 0.5, "cups"), ing("olive oil", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Air fry turkey meatballs at 380°F 10 mins.", "Dip in warm marinara."] },
+      { id: 36, title: "Honey Glazed Pork Chop", cuisine: "American", theme: "gym", cost: 4.20, time: 20, appliances: ["oven"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["gluten-free", "high-protein"], description: "Pork chop glazed with honey and garlic baked alongside green beans.", nutrition: { cals: 430, protein: 36, carbs: 22 }, ingredients: [ing("pork chop", 6, "oz"), ing("honey", 1, "tbsp", true), ing("olive oil", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Glaze pork chop with honey and garlic.", "Bake at 400°F for 18 mins."] },
+      { id: 37, title: "Slow Cooker Beef Curry & Rice", cuisine: "Indian", theme: "gym", cost: 4.90, time: 10, appliances: ["slowcooker"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["dairy-free", "gluten-free", "high-protein"], description: "Beef stew meat slow cooked in curry spices over rice.", nutrition: { cals: 540, protein: 38, carbs: 56 }, ingredients: [ing("ground beef", 6, "oz"), ing("rice", 1, "cups"), ing("olive oil", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Slow cook beef and curry spices 7 hours.", "Serve over rice."] },
+      { id: 38, title: "Toaster Oven Crispy Chicken Parmesan", cuisine: "Italian", theme: "gym", cost: 4.10, time: 18, appliances: ["toaster"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["high-protein"], description: "Breaded chicken patty topped with marinara and melted mozzarella.", nutrition: { cals: 460, protein: 40, carbs: 28 }, ingredients: [ing("chicken breast", 6, "oz"), ing("cheese", 0.3, "cups"), ing("tomatoes", 0.5, "cups"), ing("bread", 1, "slice")], instructions: ["Bake breaded chicken in toaster oven.", "Top with marinara and mozzarella, melt."] },
+      { id: 39, title: "Cheddar Turkey Burger Patty", cuisine: "American", theme: "gym", cost: 3.20, time: 12, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["keto", "gluten-free", "high-protein"], description: "Turkey burger patty seared in skillet and topped with cheddar.", nutrition: { cals: 390, protein: 35, carbs: 2 }, ingredients: [ing("ground turkey", 6, "oz"), ing("cheese", 0.25, "cups"), ing("butter", 1, "tbsp", true)], instructions: ["Form turkey into patty.", "Sear 5 mins per side.", "Melt cheddar on top."] },
+      { id: 40, title: "Egg White Veggie Scramble", cuisine: "American", theme: "gym", cost: 2.10, time: 8, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["keto", "vegetarian", "high-protein"], description: "Fluffy egg whites scrambled with spinach, tomatoes, and feta.", nutrition: { cals: 220, protein: 26, carbs: 6 }, ingredients: [ing("eggs", 4, "whites"), ing("spinach", 0.5, "cups"), ing("tomatoes", 0.25, "cups"), ing("cheese", 0.2, "cups")], instructions: ["Scramble egg whites in skillet.", "Toss in spinach and tomatoes."] },
+
+      // TAKEOUT DUPES (41-60)
+      { id: 41, title: "Chipotle-Style Chicken Burrito Bowl", cuisine: "Mexican", theme: "takeout", cost: 3.40, time: 15, appliances: ["stove"], style: "single", onePot: false, lateNight: false, winco: true, tags: ["gluten-free", "high-protein"], description: "Seared chicken over rice with black beans, corn, cheese, and salsa.", nutrition: { cals: 520, protein: 38, carbs: 62 }, ingredients: [ing("chicken breast", 6, "oz"), ing("rice", 1, "cups"), ing("black beans", 0.5, "cups"), ing("cheese", 0.2, "cups"), ing("salsa", 2, "tbsp")], instructions: ["Sear seasoned chicken cubes.", "Assemble bowl with rice, beans, corn, and chicken."] },
+      { id: 42, title: "Panda Express Honey Sesame Chicken Hack", cuisine: "Asian", theme: "takeout", cost: 3.20, time: 15, appliances: ["stove"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["dairy-free", "high-protein"], description: "Crispy chicken tossed in honey soy glaze with sesame seeds.", nutrition: { cals: 490, protein: 35, carbs: 58 }, ingredients: [ing("chicken breast", 6, "oz"), ing("rice", 1, "cups"), ing("honey", 1, "tbsp", true), ing("soy sauce", 1, "tbsp", true)], instructions: ["Crisp chicken cubes in skillet.", "Toss in honey soy glaze.", "Serve over white rice."] },
+      { id: 43, title: "Trader Joe's Dumpling Soup Hack", cuisine: "Asian", theme: "takeout", cost: 2.80, time: 10, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["dairy-free"], description: "Frozen potstickers simmered in chicken broth with soy sauce and spinach.", nutrition: { cals: 360, protein: 16, carbs: 48 }, ingredients: [ing("chicken breast", 4, "oz"), ing("spinach", 0.5, "cups"), ing("soy sauce", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Bring broth to boil.", "Simmer dumplings 6 minutes.", "Stir in spinach."] },
+      { id: 44, title: "15-Minute Thai Peanut Noodles", cuisine: "Asian", theme: "takeout", cost: 2.10, time: 12, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegan", "vegetarian", "dairy-free"], description: "Noodles tossed in creamy peanut butter, soy sauce, and lime juice.", nutrition: { cals: 440, protein: 15, carbs: 56 }, ingredients: [ing("pasta", 1, "cups"), ing("peanut butter", 2, "tbsp"), ing("soy sauce", 1, "tbsp", true), ing("lemon juice", 1, "tbsp")], instructions: ["Boil pasta.", "Whisk peanut butter, soy sauce, and hot water.", "Toss noodles."] },
+      { id: 45, title: "Halal Cart Style Chicken & Rice", cuisine: "Middle Eastern", theme: "takeout", cost: 3.50, time: 20, appliances: ["stove"], style: "batch", onePot: false, lateNight: false, winco: true, tags: ["gluten-free", "high-protein"], description: "Spiced chicken over yellow rice with white yogurt garlic sauce.", nutrition: { cals: 510, protein: 39, carbs: 55 }, ingredients: [ing("chicken breast", 6, "oz"), ing("rice", 1, "cups"), ing("greek yogurt", 2, "tbsp"), ing("olive oil", 1, "tbsp", true)], instructions: ["Sear spiced chicken.", "Serve over yellow rice with garlic yogurt sauce."] },
+      { id: 46, title: "Takeout Style Beef & Broccoli Stir-Fry", cuisine: "Asian", theme: "takeout", cost: 3.40, time: 15, appliances: ["stove"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["dairy-free", "high-protein"], description: "Sliced beef and broccoli sautéed in brown soy sauce over rice.", nutrition: { cals: 480, protein: 36, carbs: 52 }, ingredients: [ing("ground beef", 6, "oz"), ing("broccoli", 1, "cups"), ing("rice", 1, "cups"), ing("soy sauce", 1, "tbsp", true)], instructions: ["Sear beef and broccoli.", "Add soy garlic sauce.", "Serve over hot rice."] },
+      { id: 47, title: "Subway-Style Meatball Marinara Sub", cuisine: "Italian", theme: "takeout", cost: 3.10, time: 10, appliances: ["toaster"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["high-protein"], description: "Meatballs in marinara stuffed into a toasted roll with cheese.", nutrition: { cals: 520, protein: 28, carbs: 54 }, ingredients: [ing("ground beef", 5, "oz"), ing("bread", 1, "sub roll"), ing("cheese", 0.3, "cups"), ing("tomatoes", 0.5, "cups")], instructions: ["Warm meatballs in sauce.", "Stuff into roll with cheese.", "Toast 3 minutes."] },
+      { id: 48, title: "Taco Bell Style Crunchwrap Hack", cuisine: "Mexican", theme: "takeout", cost: 2.90, time: 12, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["high-protein"], description: "Large tortilla folded around beef, cheese, tostada shell, and salsa.", nutrition: { cals: 490, protein: 26, carbs: 58 }, ingredients: [ing("tortillas", 2, ""), ing("ground beef", 4, "oz"), ing("cheese", 0.25, "cups"), ing("salsa", 2, "tbsp")], instructions: ["Layer beef, cheese, chip, and salsa.", "Fold edges tightly.", "Grill 2 mins per side."] },
+      { id: 49, title: "CPK Style BBQ Chicken Pizza Flatbread", cuisine: "American", theme: "takeout", cost: 3.30, time: 12, appliances: ["oven"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["high-protein"], description: "Flatbread layered with BBQ sauce, chicken, red onion, and mozzarella.", nutrition: { cals: 440, protein: 30, carbs: 48 }, ingredients: [ing("flatbread", 1, ""), ing("chicken breast", 4, "oz"), ing("cheese", 0.3, "cups"), ing("peppers", 0.25, "cups")], instructions: ["Spread BBQ sauce.", "Top with chicken and cheese.", "Bake 10 mins at 400°F."] },
+      { id: 50, title: "In-N-Out Style Animal Fries Bowl", cuisine: "American", theme: "takeout", cost: 2.70, time: 15, appliances: ["airfryer"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian"], description: "Air fried fries topped with melted American cheese and sauce.", nutrition: { cals: 460, protein: 12, carbs: 54 }, ingredients: [ing("potatoes", 1.5, "cups"), ing("cheese", 0.3, "cups"), ing("mayo", 1, "tbsp", true), ing("butter", 1, "tbsp", true)], instructions: ["Air fry fries 12 mins.", "Top with cheese slices and melt.", "Drizzle sauce."] },
+      { id: 51, title: "Chick-fil-A Style Chicken Sandwich", cuisine: "American", theme: "takeout", cost: 3.20, time: 15, appliances: ["airfryer"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["high-protein"], description: "Crispy pickle-brined chicken breast air fried on a buttered bun.", nutrition: { cals: 480, protein: 38, carbs: 42 }, ingredients: [ing("chicken breast", 6, "oz"), ing("bread", 1, "bun"), ing("butter", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Soak chicken in pickle juice.", "Air fry at 380°F for 12 mins.", "Serve on bun with pickles."] },
+      { id: 52, title: "Teriyaki Chicken Fried Noodles", cuisine: "Asian", theme: "takeout", cost: 3.10, time: 12, appliances: ["stove"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["dairy-free"], description: "Ramen noodles pan-fried with chicken, veggies, and teriyaki sauce.", nutrition: { cals: 460, protein: 32, carbs: 56 }, ingredients: [ing("chicken breast", 5, "oz"), ing("ramen", 1, "pack"), ing("broccoli", 0.5, "cups"), ing("soy sauce", 1, "tbsp", true)], instructions: ["Boil ramen 2 mins.", "Pan-fry chicken and veggies.", "Toss noodles in teriyaki sauce."] },
+      { id: 53, title: "Panda Express Chow Mein Hack", cuisine: "Asian", theme: "takeout", cost: 2.20, time: 10, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "dairy-free"], description: "Stir-fried noodles tossed with cabbage, soy sauce, and sesame oil.", nutrition: { cals: 380, protein: 11, carbs: 62 }, ingredients: [ing("pasta", 1, "cups"), ing("spinach", 0.5, "cups"), ing("soy sauce", 1, "tbsp", true), ing("sesame oil", 1, "tsp", true)], instructions: ["Boil noodles.", "Stir-fry shredded cabbage in soy sauce.", "Toss noodles."] },
+      { id: 54, title: "Egg Drop Fried Rice Bowl", cuisine: "Asian", theme: "takeout", cost: 2.10, time: 10, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "dairy-free"], description: "Savory fried rice tossed with scrambled eggs and green onions.", nutrition: { cals: 390, protein: 14, carbs: 58 }, ingredients: [ing("rice", 1, "cups"), ing("eggs", 2, ""), ing("soy sauce", 1, "tbsp", true), ing("sesame oil", 1, "tsp", true)], instructions: ["Scramble eggs in oil.", "Stir in rice and soy sauce.", "Top with green onions."] },
+      { id: 55, title: "Sweet & Sour Tofu Hack", cuisine: "Asian", theme: "takeout", cost: 2.50, time: 15, appliances: ["airfryer"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["vegan", "vegetarian", "dairy-free"], description: "Crispy air fried tofu cubes tossed in sweet chili sauce over rice.", nutrition: { cals: 410, protein: 18, carbs: 56 }, ingredients: [ing("tofu", 6, "oz"), ing("rice", 1, "cups"), ing("peppers", 0.5, "cups"), ing("olive oil", 1, "tbsp", true)], instructions: ["Air fry tofu cubes at 400°F 12 mins.", "Toss in sweet chili sauce.", "Serve over rice."] },
+      { id: 56, title: "Dominos Style Garlic Parmesan Wings", cuisine: "American", theme: "takeout", cost: 3.50, time: 18, appliances: ["airfryer"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["keto", "gluten-free", "high-protein"], description: "Air fried chicken wings tossed in butter, garlic, and parmesan.", nutrition: { cals: 520, protein: 35, carbs: 2 }, ingredients: [ing("chicken breast", 7, "oz"), ing("butter", 1, "tbsp", true), ing("cheese", 0.25, "cups"), ing("salt", 1, "pinch", true)], instructions: ["Air fry wings at 400°F 16 mins.", "Toss in garlic butter and parmesan."] },
+      { id: 57, title: "Firehouse Style Hook & Ladder Sub", cuisine: "American", theme: "takeout", cost: 3.20, time: 8, appliances: ["toaster"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["high-protein"], description: "Smoked turkey, ham, and melted Monterey Jack on a sub roll.", nutrition: { cals: 470, protein: 32, carbs: 45 }, ingredients: [ing("chicken breast", 5, "oz"), ing("bread", 1, "sub roll"), ing("cheese", 0.3, "cups"), ing("butter", 1, "tbsp", true)], instructions: ["Layer turkey, ham, and cheese on roll.", "Toast 3 mins until cheese melts."] },
+      { id: 58, title: "Olive Garden Style Soup & Breadsticks", cuisine: "Italian", theme: "takeout", cost: 2.80, time: 15, appliances: ["stove"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["nut-free"], description: "Creamy sausage, potato, and spinach soup served with garlic bread.", nutrition: { cals: 430, protein: 18, carbs: 52 }, ingredients: [ing("pork chop", 3, "oz"), ing("potatoes", 1, "cup"), ing("spinach", 0.5, "cups"), ing("bread", 1, "breadstick")], instructions: ["Brown sausage and potatoes in broth.", "Stir in cream and spinach.", "Serve with bread."] },
+      { id: 59, title: "Panera Style Broccoli Cheddar Soup", cuisine: "American", theme: "takeout", cost: 2.90, time: 15, appliances: ["stove"], style: "batch", onePot: true, lateNight: true, winco: true, tags: ["vegetarian"], description: "Rich, cheesy broccoli soup served in a warm bowl.", nutrition: { cals: 380, protein: 16, carbs: 28 }, ingredients: [ing("broccoli", 1.5, "cups"), ing("cheese", 0.5, "cups"), ing("milk", 0.75, "cups"), ing("butter", 1, "tbsp", true)], instructions: ["Simmer broccoli in vegetable broth.", "Stir in milk and cheddar cheese.", "Serve hot."] },
+      { id: 60, title: "Panda Express Orange Chicken Hack", cuisine: "Asian", theme: "takeout", cost: 3.30, time: 15, appliances: ["airfryer"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["high-protein"], description: "Crispy chicken bites tossed in orange glaze over steamed rice.", nutrition: { cals: 510, protein: 36, carbs: 58 }, ingredients: [ing("chicken breast", 6, "oz"), ing("rice", 1, "cups"), ing("olive oil", 1, "tbsp", true), ing("soy sauce", 1, "tbsp", true)], instructions: ["Air fry chicken bites at 390°F 12 mins.", "Toss in orange sauce.", "Serve over white rice."] },
+
+      // BUDGET COMFORT FOOD (61-80)
+      { id: 61, title: "Loaded Black Bean & Cheese Quesadilla", cuisine: "Mexican", theme: "comfort", cost: 2.50, time: 12, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "nut-free"], description: "Crispy tortilla stuffed with black beans, corn, and melted cheddar.", nutrition: { cals: 420, protein: 16, carbs: 52 }, ingredients: [ing("tortillas", 2, ""), ing("black beans", 0.5, "cups"), ing("cheese", 0.35, "cups"), ing("salsa", 2, "tbsp")], instructions: ["Fill tortilla with beans and cheese.", "Cook on skillet 3 mins per side.", "Serve with salsa."] },
+      { id: 62, title: "Garlic Butter Spinach Pasta", cuisine: "Italian", theme: "comfort", cost: 2.80, time: 15, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "nut-free"], description: "Spaghetti tossed with sautéed garlic, spinach, butter, and parmesan.", nutrition: { cals: 390, protein: 12, carbs: 56 }, ingredients: [ing("pasta", 1, "cups"), ing("spinach", 1, "cups"), ing("butter", 1.5, "tbsp", true), ing("cheese", 0.25, "cups")], instructions: ["Boil pasta.", "Saute garlic and spinach in butter 2 mins.", "Toss pasta directly in butter."] },
+      { id: 63, title: "Tomato Basil Soup & Grilled Cheese", cuisine: "American", theme: "comfort", cost: 2.80, time: 10, appliances: ["stove"], style: "single", onePot: false, lateNight: true, winco: true, tags: ["vegetarian"], description: "Cozy tomato soup paired with a golden grilled cheese sandwich.", nutrition: { cals: 450, protein: 15, carbs: 48 }, ingredients: [ing("bread", 2, "slices"), ing("cheese", 0.3, "cups"), ing("tomatoes", 1, "cup"), ing("butter", 1, "tbsp", true)], instructions: ["Warm tomato soup in pot.", "Grill cheese sandwich in buttered skillet.", "Serve together."] },
+      { id: 64, title: "Sheet Pan Sausage, Peppers & Potatoes", cuisine: "American", theme: "comfort", cost: 3.60, time: 25, appliances: ["oven"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["dairy-free", "gluten-free"], description: "Sliced smoked sausage baked with diced potatoes and peppers.", nutrition: { cals: 510, protein: 22, carbs: 46 }, ingredients: [ing("sausage", 6, "oz"), ing("potatoes", 1, "cup"), ing("peppers", 0.5, "cups"), ing("olive oil", 1, "tbsp", true)], instructions: ["Toss sausage, potatoes, and peppers in oil.", "Roast on sheet pan at 400°F 22 mins."] },
+      { id: 65, title: "Avocado & Egg Toast Deluxe", cuisine: "American", theme: "comfort", cost: 2.40, time: 8, appliances: ["toaster", "stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian"], description: "Toasted sourdough topped with mashed avocado and fried egg.", nutrition: { cals: 360, protein: 14, carbs: 32 }, ingredients: [ing("bread", 2, "slices"), ing("avocado", 1, ""), ing("eggs", 2, ""), ing("salt", 1, "pinch", true)], instructions: ["Toast bread.", "Mash avocado on top.", "Fry 2 eggs in skillet and place on toast."] },
+      { id: 66, title: "Italian Sausage Pasta Skillet", cuisine: "Italian", theme: "comfort", cost: 3.70, time: 15, appliances: ["stove"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["high-protein"], description: "Browned sausage, penne pasta, marinara sauce, and mozzarella.", nutrition: { cals: 540, protein: 26, carbs: 58 }, ingredients: [ing("sausage", 6, "oz"), ing("pasta", 1, "cups"), ing("tomatoes", 0.5, "cups"), ing("cheese", 0.25, "cups")], instructions: ["Boil pasta.", "Sear sliced sausage in skillet.", "Mix with marinara sauce and cheese."] },
+      { id: 67, title: "Creamy Tomato Tortellini Soup", cuisine: "Italian", theme: "comfort", cost: 3.40, time: 12, appliances: ["stove"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["vegetarian"], description: "Cheese tortellini simmered in creamy tomato soup with spinach.", nutrition: { cals: 440, protein: 18, carbs: 54 }, ingredients: [ing("pasta", 1, "cups"), ing("tomatoes", 1, "cup"), ing("spinach", 0.5, "cups"), ing("cheese", 0.25, "cups")], instructions: ["Simmer tortellini in tomato soup 8 mins.", "Stir in spinach until wilted."] },
+      { id: 68, title: "Sheet Pan Loaded Nachos", cuisine: "Mexican", theme: "comfort", cost: 3.10, time: 12, appliances: ["oven"], style: "batch", onePot: true, lateNight: true, winco: true, tags: ["vegetarian"], description: "Sheet of tortilla chips baked with black beans, corn, and cheese.", nutrition: { cals: 520, protein: 16, carbs: 64 }, ingredients: [ing("tortillas", 3, "handfuls"), ing("black beans", 0.5, "cups"), ing("cheese", 0.4, "cups"), ing("salsa", 2, "tbsp")], instructions: ["Spread chips on sheet pan.", "Top with beans, corn, and cheese.", "Bake at 400°F 8 mins."] },
+      { id: 69, title: "Cheesy Bacon Potato Hash Skillet", cuisine: "American", theme: "comfort", cost: 2.90, time: 15, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["gluten-free"], description: "Diced potatoes pan-fried with bacon bits and melted cheddar.", nutrition: { cals: 460, protein: 15, carbs: 44 }, ingredients: [ing("potatoes", 1.5, "cups"), ing("bacon", 3, "strips"), ing("cheese", 0.3, "cups"), ing("butter", 1, "tbsp", true)], instructions: ["Crisp diced potatoes and bacon in skillet.", "Top with cheddar cheese and melt."] },
+      { id: 70, title: "French Onion Grilled Cheese", cuisine: "American", theme: "comfort", cost: 2.60, time: 15, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian"], description: "Caramelized onions and melted swiss cheese between bread slices.", nutrition: { cals: 410, protein: 16, carbs: 38 }, ingredients: [ing("bread", 2, "slices"), ing("cheese", 0.35, "cups"), ing("butter", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Caramelize sliced onions in skillet.", "Assemble sandwich with cheese.", "Grill golden."] },
+      { id: 71, title: "Creamy Garlic Parmesan Pasta", cuisine: "Italian", theme: "comfort", cost: 2.30, time: 12, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian"], description: "Fettuccine tossed in milk, butter, minced garlic, and parmesan.", nutrition: { cals: 420, protein: 13, carbs: 56 }, ingredients: [ing("pasta", 1, "cups"), ing("butter", 1.5, "tbsp", true), ing("milk", 0.25, "cups"), ing("cheese", 0.3, "cups")], instructions: ["Boil pasta.", "Simmer butter, garlic, and parmesan into sauce.", "Toss pasta."] },
+      { id: 72, title: "Cheesy Broccoli Rice Casserole", cuisine: "American", theme: "comfort", cost: 2.70, time: 20, appliances: ["oven"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["vegetarian", "gluten-free"], description: "Baked rice casserole loaded with fresh broccoli and cheddar.", nutrition: { cals: 390, protein: 14, carbs: 50 }, ingredients: [ing("rice", 1, "cups"), ing("broccoli", 1, "cups"), ing("cheese", 0.35, "cups"), ing("milk", 0.25, "cups")], instructions: ["Mix cooked rice, broccoli, and cheese.", "Bake at 375°F for 15 mins."] },
+      { id: 73, title: "Bacon & Cheddar Egg Bake", cuisine: "American", theme: "comfort", cost: 2.80, time: 20, appliances: ["oven"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["keto", "gluten-free", "high-protein"], description: "Fluffy baked eggs with crispy bacon pieces and cheddar cheese.", nutrition: { cals: 430, protein: 26, carbs: 3 }, ingredients: [ing("eggs", 3, ""), ing("bacon", 3, "strips"), ing("cheese", 0.3, "cups"), ing("milk", 0.25, "cups")], instructions: ["Whisk eggs, milk, bacon, and cheese.", "Bake in oven at 375°F 18 mins."] },
+      { id: 74, title: "Chili Mac Skillet", cuisine: "American", theme: "comfort", cost: 2.90, time: 15, appliances: ["stove"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["high-protein"], description: "Canned chili mixed directly with macaroni and melted cheese.", nutrition: { cals: 510, protein: 24, carbs: 62 }, ingredients: [ing("elbow macaroni", 0.75, "cups"), ing("ground beef", 4, "oz"), ing("black beans", 0.5, "cups"), ing("cheese", 0.25, "cups")], instructions: ["Boil macaroni.", "Stir in warm chili and cheddar cheese."] },
+      { id: 75, title: "Sausage & Egg Biscuit Sandwich", cuisine: "American", theme: "comfort", cost: 2.20, time: 8, appliances: ["toaster", "stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["high-protein"], description: "Pan-fried sausage patty and egg served on a warm biscuit.", nutrition: { cals: 460, protein: 20, carbs: 34 }, ingredients: [ing("sausage", 1, "patty"), ing("eggs", 1, ""), ing("bread", 1, "biscuit"), ing("cheese", 0.2, "cups")], instructions: ["Fry sausage patty and egg.", "Serve inside warm biscuit with cheese."] },
+      { id: 76, title: "Loaded Baked Potato Soup", cuisine: "American", theme: "comfort", cost: 2.50, time: 18, appliances: ["stove"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["gluten-free"], description: "Thick potato soup topped with bacon bits and cheddar.", nutrition: { cals: 410, protein: 14, carbs: 54 }, ingredients: [ing("potatoes", 2, "cups"), ing("bacon", 3, "strips"), ing("cheese", 0.3, "cups"), ing("milk", 0.5, "cups")], instructions: ["Boil potato cubes in broth.", "Mash partially, stir in cheese.", "Top with bacon."] },
+      { id: 77, title: "Cheesy Spinach & Mushroom Flatbread", cuisine: "Italian", theme: "comfort", cost: 2.80, time: 10, appliances: ["toaster"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian"], description: "Toasted flatbread topped with sautéed spinach and mozzarella.", nutrition: { cals: 360, protein: 14, carbs: 42 }, ingredients: [ing("flatbread", 1, ""), ing("spinach", 1, "cups"), ing("cheese", 0.35, "cups"), ing("olive oil", 1, "tbsp", true)], instructions: ["Sauté spinach and mushrooms.", "Top flatbread with veggies and cheese.", "Toast 5 mins."] },
+      { id: 78, title: "Creamy Garlic Butter Rice Bowl", cuisine: "American", theme: "comfort", cost: 1.70, time: 8, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "gluten-free"], description: "Warm white rice tossed with melted garlic butter and parmesan.", nutrition: { cals: 340, protein: 7, carbs: 58 }, ingredients: [ing("rice", 1, "cups"), ing("butter", 1.5, "tbsp", true), ing("cheese", 0.2, "cups"), ing("salt", 1, "pinch", true)], instructions: ["Toss hot rice with butter, garlic powder, and parmesan."] },
+      { id: 79, title: "Ham & Swiss Croissant Melt", cuisine: "French", theme: "comfort", cost: 2.90, time: 6, appliances: ["toaster"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["high-protein"], description: "Warm flaky croissant filled with sliced ham and melted swiss.", nutrition: { cals: 420, protein: 18, carbs: 36 }, ingredients: [ing("bread", 1, "croissant"), ing("chicken breast", 4, "oz"), ing("cheese", 0.3, "cups"), ing("butter", 1, "tbsp", true)], instructions: ["Slice croissant open.", "Fill with ham and swiss cheese.", "Toast 4 mins."] },
+      { id: 80, title: "Cheesy Corn Chowder", cuisine: "American", theme: "comfort", cost: 2.10, time: 15, appliances: ["stove"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["vegetarian", "gluten-free"], description: "Creamy soup made with sweet corn, potatoes, milk, and cheddar.", nutrition: { cals: 360, protein: 12, carbs: 55 }, ingredients: [ing("corn", 1, "cup"), ing("potatoes", 1, "cup"), ing("milk", 0.5, "cups"), ing("cheese", 0.25, "cups")], instructions: ["Simmer corn and potatoes in broth 10 mins.", "Stir in milk and cheese."] },
+
+      // GLOBAL FLAVORS (81-100)
+      { id: 81, title: "Mediterranean Chickpea Salad Bowl", cuisine: "Mediterranean", theme: "global", cost: 3.20, time: 10, appliances: [], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "vegan", "gluten-free"], description: "Chickpeas tossed with cucumber, tomatoes, olive oil, and lemon.", nutrition: { cals: 350, protein: 13, carbs: 48 }, ingredients: [ing("chickpeas", 1, "can"), ing("cucumber", 0.5, "cups"), ing("tomatoes", 0.5, "cups"), ing("olive oil", 1, "tbsp", true)], instructions: ["Drain chickpeas.", "Dice cucumber and tomatoes.", "Toss with olive oil and lemon."] },
+      { id: 82, title: "Quick Coconut Chickpea Curry", cuisine: "Indian", theme: "global", cost: 2.70, time: 15, appliances: ["stove"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["vegan", "vegetarian", "gluten-free"], description: "Chickpeas simmered in coconut milk, curry powder, and spinach.", nutrition: { cals: 410, protein: 14, carbs: 52 }, ingredients: [ing("chickpeas", 1, "can"), ing("spinach", 1, "cups"), ing("rice", 0.75, "cups"), ing("olive oil", 1, "tbsp", true)], instructions: ["Simmer chickpeas, coconut milk, and curry powder 10 mins.", "Stir in spinach."] },
+      { id: 83, title: "Chicken Tikka Masala Hack", cuisine: "Indian", theme: "global", cost: 4.60, time: 18, appliances: ["stove"], style: "batch", onePot: false, lateNight: false, winco: true, tags: ["gluten-free", "high-protein"], description: "Chicken bites simmered in tikka masala sauce over basmati rice.", nutrition: { cals: 520, protein: 40, carbs: 56 }, ingredients: [ing("chicken breast", 6, "oz"), ing("rice", 1, "cups"), ing("tomatoes", 0.5, "cups"), ing("greek yogurt", 2, "tbsp")], instructions: ["Sear chicken cubes.", "Add tikka masala sauce.", "Simmer 10 mins and serve over rice."] },
+      { id: 84, title: "Slow Cooker Lentil & Vegetable Chili", cuisine: "American", theme: "global", cost: 2.10, time: 10, appliances: ["slowcooker"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["vegan", "vegetarian", "gluten-free"], description: "Hearty chili slow cooked with brown lentils and tomatoes.", nutrition: { cals: 360, protein: 18, carbs: 62 }, ingredients: [ing("chickpeas", 1, "cup"), ing("tomatoes", 1, "cup"), ing("peppers", 0.5, "cups"), ing("olive oil", 1, "tbsp", true)], instructions: ["Combine lentils, tomatoes, and spices in slow cooker.", "Cook LOW 6 hours."] },
+      { id: 85, title: "Tofu Veggie Teriyaki Stir-Fry", cuisine: "Asian", theme: "global", cost: 2.90, time: 15, appliances: ["stove"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["vegan", "vegetarian", "dairy-free"], description: "Crispy tofu cubes tossed with veggies and teriyaki sauce over rice.", nutrition: { cals: 420, protein: 18, carbs: 58 }, ingredients: [ing("tofu", 6, "oz"), ing("rice", 1, "cups"), ing("broccoli", 0.5, "cups"), ing("soy sauce", 1, "tbsp", true)], instructions: ["Pan-fry tofu until golden.", "Toss in veggies and teriyaki sauce over rice."] },
+      { id: 86, title: "Mexican Street Corn Rice Bowl", cuisine: "Mexican", theme: "global", cost: 2.30, time: 10, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "gluten-free"], description: "Warm rice tossed with sweet corn, cotija cheese, chili, and lime.", nutrition: { cals: 380, protein: 10, carbs: 62 }, ingredients: [ing("rice", 1, "cups"), ing("corn", 1, "cup"), ing("cheese", 0.25, "cups"), ing("mayo", 1, "tbsp", true)], instructions: ["Char corn in skillet.", "Mix into warm rice with mayo, cheese, and lime."] },
+      { id: 87, title: "Shakshuka Poached Eggs in Tomato Sauce", cuisine: "Middle Eastern", theme: "global", cost: 2.50, time: 15, appliances: ["stove"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["vegetarian", "gluten-free"], description: "Eggs gently poached in spiced tomato sauce served with pita.", nutrition: { cals: 340, protein: 16, carbs: 32 }, ingredients: [ing("eggs", 3, ""), ing("tomatoes", 1.5, "cups"), ing("flatbread", 1, ""), ing("olive oil", 1, "tbsp", true)], instructions: ["Simmer tomatoes and cumin.", "Crack eggs into sauce, cover 6 mins.", "Dip with pita."] },
+      { id: 88, title: "Japanese Curry & Rice Bowl", cuisine: "Asian", theme: "global", cost: 2.80, time: 18, appliances: ["stove"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["dairy-free"], description: "Rich Japanese curry sauce with potatoes, carrots, and white rice.", nutrition: { cals: 460, protein: 10, carbs: 74 }, ingredients: [ing("potatoes", 1, "cup"), ing("rice", 1, "cups"), ing("peppers", 0.5, "cups"), ing("olive oil", 1, "tbsp", true)], instructions: ["Boil potatoes and carrots.", "Stir in curry roux block.", "Serve over rice."] },
+      { id: 89, title: "Spanish Garlic Shrimp & Rice", cuisine: "Spanish", theme: "global", cost: 4.80, time: 12, appliances: ["stove"], style: "single", onePot: true, lateNight: false, winco: false, tags: ["dairy-free", "gluten-free", "high-protein"], description: "Sautéed garlic shrimp tossed with olive oil and paprika over rice.", nutrition: { cals: 420, protein: 34, carbs: 50 }, ingredients: [ing("shrimp", 6, "oz"), ing("rice", 1, "cups"), ing("olive oil", 1.5, "tbsp", true), ing("lemon", 0.5, "")], instructions: ["Sauté shrimp and garlic in olive oil 4 mins.", "Spoon over hot rice."] },
+      { id: 90, title: "Air Fryer Sesame Tofu & Green Beans", cuisine: "Asian", theme: "global", cost: 2.60, time: 14, appliances: ["airfryer"], style: "single", onePot: true, lateNight: false, winco: true, tags: ["vegan", "vegetarian", "gluten-free"], description: "Crispy tofu cubes and green beans air fried in soy sauce.", nutrition: { cals: 360, protein: 17, carbs: 22 }, ingredients: [ing("tofu", 6, "oz"), ing("asparagus", 1, "cups"), ing("soy sauce", 1, "tbsp", true), ing("sesame oil", 1, "tsp", true)], instructions: ["Toss tofu and green beans in soy sauce.", "Air fry at 380°F 12 mins."] },
+      { id: 91, title: "Greek Lemon Garlic Chicken & Potatoes", cuisine: "Mediterranean", theme: "global", cost: 3.80, time: 25, appliances: ["oven"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["dairy-free", "gluten-free", "high-protein"], description: "Chicken thighs and baby potatoes baked in lemon garlic glaze.", nutrition: { cals: 490, protein: 41, carbs: 42 }, ingredients: [ing("chicken breast", 6, "oz"), ing("potatoes", 1, "cup"), ing("lemon", 0.5, ""), ing("olive oil", 1, "tbsp", true)], instructions: ["Toss chicken and potatoes in lemon, garlic, oil.", "Bake at 400°F 24 mins."] },
+      { id: 92, title: "Korean Kimchi Fried Rice", cuisine: "Asian", theme: "global", cost: 2.30, time: 10, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["dairy-free"], description: "Spicy fried rice tossed with kimchi and topped with a fried egg.", nutrition: { cals: 410, protein: 13, carbs: 56 }, ingredients: [ing("rice", 1, "cups"), ing("kimchi", 0.5, "cups"), ing("eggs", 1, ""), ing("sesame oil", 1, "tsp", true)], instructions: ["Pan-fry kimchi and rice in sesame oil.", "Top with fried egg."] },
+      { id: 93, title: "Vietnamese Noodle Salad Bowl", cuisine: "Asian", theme: "global", cost: 2.80, time: 10, appliances: ["kettle"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegan", "vegetarian", "gluten-free"], description: "Rice noodles steeped in kettle water tossed with cucumbers and peanuts.", nutrition: { cals: 380, protein: 11, carbs: 64 }, ingredients: [ing("pasta", 1, "cups"), ing("cucumber", 0.5, "cups"), ing("peanuts", 2, "tbsp"), ing("soy sauce", 1, "tbsp", true)], instructions: ["Steep rice noodles in kettle water 5 mins.", "Toss with cucumber and soy peanut dressing."] },
+      { id: 94, title: "Cuban Black Beans & Rice", cuisine: "Caribbean", theme: "global", cost: 1.80, time: 12, appliances: ["stove"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["vegan", "vegetarian", "gluten-free"], description: "Black beans simmered with cumin, garlic, and vinegar over rice.", nutrition: { cals: 390, protein: 14, carbs: 68 }, ingredients: [ing("black beans", 1, "cup"), ing("rice", 1, "cups"), ing("olive oil", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Simmer black beans with garlic and cumin 10 mins.", "Serve over rice."] },
+      { id: 95, title: "Italian Pesto Chickpea Pasta", cuisine: "Italian", theme: "global", cost: 2.60, time: 12, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian"], description: "Penne pasta tossed with canned chickpeas, pesto, and parmesan.", nutrition: { cals: 450, protein: 16, carbs: 60 }, ingredients: [ing("pasta", 1, "cups"), ing("chickpeas", 0.5, "cups"), ing("pesto", 2, "tbsp"), ing("cheese", 0.2, "cups")], instructions: ["Boil pasta.", "Toss pasta and chickpeas with pesto."] },
+      { id: 96, title: "Indian Spiced Potato Aloo Gobi", cuisine: "Indian", theme: "global", cost: 2.10, time: 18, appliances: ["stove"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["vegan", "vegetarian", "gluten-free"], description: "Diced potatoes and cauliflower sautéed with turmeric and cumin.", nutrition: { cals: 280, protein: 7, carbs: 52 }, ingredients: [ing("potatoes", 1.5, "cups"), ing("broccoli", 1, "cups"), ing("olive oil", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Pan-fry potatoes and cauliflower with spices until tender."] },
+      { id: 97, title: "Mexican Pinto Bean & Rice Bowl", cuisine: "Mexican", theme: "global", cost: 1.70, time: 8, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegan", "vegetarian", "gluten-free"], description: "Warm pinto beans served over rice with salsa and cilantro.", nutrition: { cals: 370, protein: 13, carbs: 65 }, ingredients: [ing("rice", 1, "cups"), ing("black beans", 0.75, "cups"), ing("salsa", 2, "tbsp"), ing("salt", 1, "pinch", true)], instructions: ["Warm beans with salsa.", "Serve over hot rice."] },
+      { id: 98, title: "Thai Sweet Chili Egg Noodles", cuisine: "Asian", theme: "global", cost: 2.20, time: 10, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "dairy-free"], description: "Egg noodles tossed in sweet chili sauce with spinach.", nutrition: { cals: 410, protein: 12, carbs: 65 }, ingredients: [ing("pasta", 1, "cups"), ing("spinach", 0.5, "cups"), ing("soy sauce", 1, "tbsp", true), ing("sesame oil", 1, "tsp", true)], instructions: ["Boil noodles.", "Toss with sweet chili sauce, soy sauce, and spinach."] },
+      { id: 99, title: "Greek Lemon Rice with Feta", cuisine: "Mediterranean", theme: "global", cost: 2.10, time: 10, appliances: ["stove"], style: "single", onePot: true, lateNight: true, winco: true, tags: ["vegetarian", "gluten-free"], description: "White rice tossed with lemon juice, olive oil, and crumbled feta.", nutrition: { cals: 360, protein: 9, carbs: 54 }, ingredients: [ing("rice", 1, "cups"), ing("cheese", 0.25, "cups"), ing("lemon", 0.5, ""), ing("olive oil", 1, "tbsp", true)], instructions: ["Toss hot rice with lemon juice, olive oil, and feta."] },
+      { id: 100, title: "Jamaican Jerk Black Beans & Rice", cuisine: "Caribbean", theme: "global", cost: 1.90, time: 12, appliances: ["stove"], style: "batch", onePot: true, lateNight: false, winco: true, tags: ["vegan", "vegetarian", "gluten-free"], description: "Black beans simmered in jerk seasoning and coconut milk over rice.", nutrition: { cals: 390, protein: 13, carbs: 64 }, ingredients: [ing("black beans", 0.75, "cups"), ing("rice", 1, "cups"), ing("olive oil", 1, "tbsp", true), ing("salt", 1, "pinch", true)], instructions: ["Simmer black beans with jerk spice and coconut milk 8 mins.", "Serve over rice."] }
+    ];
+
+    // STATE MANAGEMENT
+    let favoriteIds = JSON.parse(localStorage.getItem("campusEatsFavorites") || "[]");
+    let selectedPantryIngredients = [];
+    let currentViewMode = 'all';
+    const servingState = {};
+    recipes.forEach(r => servingState[r.id] = 1);
+    let shoppingList = [];
+
+    document.getElementById("favoritesCount").textContent = favoriteIds.length;
+
+    function toggleFavorite(id, event) {
+      event.stopPropagation();
+      if (favoriteIds.includes(id)) {
+        favoriteIds = favoriteIds.filter(fId => fId !== id);
+      } else {
+        favoriteIds.push(id);
+      }
+      localStorage.setItem("campusEatsFavorites", JSON.stringify(favoriteIds));
+      document.getElementById("favoritesCount").textContent = favoriteIds.length;
+      updateFilters();
+    }
+
+    function initPantryUI() {
+      const pContainer = document.getElementById("pantryCategoryProteins");
+      const cContainer = document.getElementById("pantryCategoryCarbs");
+      const prContainer = document.getElementById("pantryCategoryProduce");
+
+      const createChip = (name) => {
+        const btn = document.createElement("button");
+        btn.className = "px-3 py-1.5 rounded-lg border text-xs font-semibold bg-slate-50 text-slate-700 border-slate-200 hover:bg-emerald-50 transition-all";
+        btn.textContent = name;
+        btn.onclick = () => {
+          if (selectedPantryIngredients.includes(name)) {
+            selectedPantryIngredients = selectedPantryIngredients.filter(i => i !== name);
+            btn.className = "px-3 py-1.5 rounded-lg border text-xs font-semibold bg-slate-50 text-slate-700 border-slate-200 hover:bg-emerald-50 transition-all";
+          } else {
+            selectedPantryIngredients.push(name);
+            btn.className = "px-3 py-1.5 rounded-lg border text-xs font-semibold bg-emerald-600 text-white border-emerald-600 shadow-sm transition-all";
+          }
+          document.getElementById("selectedIngredientsCount").textContent = `${selectedPantryIngredients.length} ingredient${selectedPantryIngredients.length === 1 ? '' : 's'} selected`;
+        };
+        return btn;
+      };
+
+      pantryProteins.forEach(i => pContainer.appendChild(createChip(i)));
+      pantryCarbs.forEach(i => cContainer.appendChild(createChip(i)));
+      pantryProduce.forEach(i => prContainer.appendChild(createChip(i)));
+    }
+
+    function togglePantryModal() {
+      const modal = document.getElementById("pantryModal");
+      modal.classList.toggle("hidden");
+      modal.classList.toggle("flex");
+    }
+
+    function clearPantrySelections() {
+      selectedPantryIngredients = [];
+      document.getElementById("pantryCategoryProteins").innerHTML = "";
+      document.getElementById("pantryCategoryCarbs").innerHTML = "";
+      document.getElementById("pantryCategoryProduce").innerHTML = "";
+      document.getElementById("selectedIngredientsCount").textContent = "0 ingredients selected";
+      initPantryUI();
+    }
+
+    function applyPantryFilter() {
+      togglePantryModal();
+      currentViewMode = 'pantry';
+      document.getElementById("gridHeaderTitle").textContent = "🥑 Best Fridge Matches";
+      updateViewButtons();
+      updateFilters();
+    }
+
+    function setActiveView(mode) {
+      currentViewMode = mode;
+      document.getElementById("gridHeaderTitle").textContent = mode === 'all' ? "Matching Recipes" : (mode === 'favorites' ? "❤️ Your Saved Favorites" : "🥑 Best Fridge Matches");
+      updateViewButtons();
+      updateFilters();
+    }
+
+    function updateViewButtons() {
+      const btnAll = document.getElementById("btnViewAll");
+      const btnFav = document.getElementById("btnViewFavorites");
+      
+      btnAll.className = currentViewMode === 'all' ? "bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all" : "bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all";
+      btnFav.className = currentViewMode === 'favorites' ? "bg-rose-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all" : "bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center gap-1.5";
+    }
+
+    function toggleAdvancedFilters() {
+      const content = document.getElementById("advancedFiltersContent");
+      const icon = document.getElementById("accordionIcon");
+      content.classList.toggle("hidden");
+      icon.textContent = content.classList.contains("hidden") ? "▼" : "▲";
+    }
+
+    function updateFilters() {
+      const searchQuery = document.getElementById("searchInput").value.toLowerCase();
+      const themeVal = document.getElementById("themeSelect").value;
+      const budgetVal = parseFloat(document.getElementById("budgetRange").value);
+      const roommates = parseInt(document.getElementById("roommateSelect").value);
+      const cookingStyle = document.getElementById("styleSelect").value;
+      const maxTimeValue = document.getElementById("timeSelect").value;
+      const maxTime = maxTimeValue === "any" ? 999 : parseInt(maxTimeValue);
+
+      document.getElementById("budgetValue").textContent = `$${budgetVal.toFixed(2)}`;
+
+      const selectedAppliances = Array.from(document.querySelectorAll('.appliance-checkbox:checked')).map(cb => cb.value);
+      const selectedDiets = Array.from(document.querySelectorAll('.diet-checkbox:checked')).map(cb => cb.value);
+
+      let filtered = recipes.filter(recipe => {
+        if (currentViewMode === 'favorites' && !favoriteIds.includes(recipe.id)) return false;
+
+        const matchesSearch = searchQuery === "" || 
+                              recipe.title.toLowerCase().includes(searchQuery) || 
+                              recipe.ingredients.some(i => i.name.toLowerCase().includes(searchQuery));
+
+        const matchesTheme = themeVal === "all" || recipe.theme === themeVal;
+        const matchesStyle = cookingStyle === "any" || recipe.style === cookingStyle;
+        const matchesTime = recipe.time <= maxTime;
+        const matchesDiet = selectedDiets.every(diet => recipe.tags.includes(diet));
+        const matchesAppliances = recipe.appliances.length === 0 || recipe.appliances.every(app => selectedAppliances.includes(app));
+
+        return matchesSearch && matchesTheme && matchesStyle && matchesTime && matchesDiet && matchesAppliances;
+      });
+
+      if (currentViewMode === 'pantry' && selectedPantryIngredients.length > 0) {
+        filtered = filtered.map(recipe => {
+          const matchCount = recipe.ingredients.filter(i => selectedPantryIngredients.includes(i.name)).length;
+          return { ...recipe, matchCount };
+        }).filter(r => r.matchCount > 0).sort((a, b) => b.matchCount - a.matchCount);
+      }
+
+      renderRecipes(filtered, roommates);
+    }
+
+    function renderRecipes(filteredList, roommates) {
+      const container = document.getElementById("recipeContainer");
+      const countLabel = document.getElementById("resultsCount");
+      container.innerHTML = "";
+
+      countLabel.textContent = `${filteredList.length} recipe${filteredList.length === 1 ? '' : 's'} found`;
+
+      if (filteredList.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500">
+            <p class="font-semibold text-base">${currentViewMode === 'favorites' ? 'You have no saved favorites yet!' : 'No recipes match your exact filter selection!'}</p>
+            <p class="text-xs mt-1">${currentViewMode === 'favorites' ? 'Click the ❤️ heart icon on any recipe card to save it here.' : 'Try expanding your filter selections.'}</p>
+          </div>
+        `;
+        return;
+      }
+
+      filteredList.forEach(recipe => {
+        const currentServings = servingState[recipe.id] || 1;
+        const totalMealCost = recipe.cost * currentServings;
+        const splitCost = totalMealCost / roommates;
+        const isFav = favoriteIds.includes(recipe.id);
+        const styleInfo = styleMap[recipe.cuisine] || { gradient: "from-slate-500/20 to-slate-400/10 border-slate-200", icon: "🍳" };
+
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow relative";
+
+        card.innerHTML = `
+          <!-- Minimalist Gradient Header Banner -->
+          <div class="h-28 w-full bg-gradient-to-r ${styleInfo.gradient} border-b p-4 flex justify-between items-start relative">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl p-2 bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-white/60">${styleInfo.icon}</span>
+              <div>
+                <span class="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 block">${recipe.cuisine} Dish</span>
+                <span class="bg-slate-900/70 text-white font-semibold text-[11px] px-2 py-0.5 rounded-full inline-block mt-0.5">⏱️ ${recipe.time} mins</span>
+              </div>
+            </div>
+
+            <button onclick="toggleFavorite(${recipe.id}, event)" class="bg-white/90 backdrop-blur-sm p-1.5 rounded-full shadow-sm text-base hover:scale-110 transition-transform border border-slate-200">
+              ${isFav ? '❤️' : '🤍'}
+            </button>
+
+            <div class="absolute bottom-3 right-3 bg-slate-900 text-emerald-400 border border-slate-700 font-bold text-xs px-2.5 py-1 rounded-full shadow-sm">
+              ~$${totalMealCost.toFixed(2)} total ${roommates > 1 ? `($${splitCost.toFixed(2)}/p)` : ''}
+            </div>
+          </div>
+          
+          <div class="p-5 flex-grow flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex flex-wrap gap-1.5 mb-2">
+                ${recipe.style === 'batch' ? `<span class="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-md">📦 Batch Prep (~3-4 days)</span>` : `<span class="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-md">🍳 Quick Single-Night</span>`}
+                ${recipe.onePot ? `<span class="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-md">🧽 One-Pot</span>` : ''}
+                ${recipe.winco ? `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-md">🛒 WinCo Friendly</span>` : ''}
+              </div>
+
+              <h3 class="text-lg font-bold text-slate-900 leading-snug mb-1">${recipe.title}</h3>
+              <p class="text-xs text-slate-500 mb-3">${recipe.description}</p>
+              
+              <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100 mb-3">
+                <span class="text-xs font-semibold text-slate-600">Servings:</span>
+                <div class="flex gap-1">
+                  ${[1, 2, 4].map(s => `
+                    <button onclick="setServings(${recipe.id}, ${s})" 
+                      class="px-2.5 py-0.5 text-xs font-bold rounded ${currentServings === s ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'} transition-colors">
+                      ${s}x
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <details class="bg-slate-50 p-2 rounded-lg border border-slate-100 mb-3 text-xs">
+                <summary class="font-bold text-slate-700 cursor-pointer">📊 Nutrition Facts (${currentServings}x)</summary>
+                <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t text-center font-semibold text-[11px] text-slate-600">
+                  <div><span class="block text-slate-400 font-normal">Cals</span>${recipe.nutrition.cals * currentServings}</div>
+                  <div><span class="block text-slate-400 font-normal">Protein</span>${recipe.nutrition.protein * currentServings}g</div>
+                  <div><span class="block text-slate-400 font-normal">Carbs</span>${recipe.nutrition.carbs * currentServings}g</div>
+                </div>
+              </details>
+
+              <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-3">
+                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">Ingredients (Ranked Most to Least Important):</h4>
+                <ul class="text-xs text-slate-600 list-disc list-inside space-y-0.5">
+                  ${recipe.ingredients.map(i => {
+                    const scaledQty = (i.qty * currentServings).toFixed(1).replace(/\.0$/, '');
+                    return `<li><strong>${scaledQty} ${i.unit}</strong> ${i.name} ${i.staple ? '<span class="text-[10px] text-slate-400">(staple)</span>' : ''}</li>`;
+                  }).join('')}
+                </ul>
+              </div>
+
+              <details class="bg-emerald-50/50 p-3 rounded-lg border border-emerald-100 text-xs">
+                <summary class="font-bold text-emerald-800 cursor-pointer flex items-center gap-1">
+                  <span>👨‍🍳 View Step-by-Step Cooking Guide</span>
+                </summary>
+                <div class="mt-2.5 pt-2 border-t border-emerald-100 space-y-2">
+                  ${recipe.instructions.map((step, idx) => `
+                    <label class="flex items-start gap-2 text-slate-700 cursor-pointer">
+                      <input type="checkbox" class="mt-0.5 accent-emerald-600 rounded">
+                      <span><strong>Step ${idx + 1}:</strong> ${step}</span>
+                    </label>
+                  `).join('')}
+                </div>
+              </details>
+            </div>
+
+            <div>
+              <button onclick="addToShoppingList(${recipe.id})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-xs font-bold transition-colors">
+                + Add to Grocery List
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function setServings(recipeId, servings) {
+      servingState[recipeId] = servings;
+      updateFilters();
+    }
+
+    function addToShoppingList(recipeId) {
+      const recipe = recipes.find(r => r.id === recipeId);
+      const excludeStaples = document.getElementById("excludeStaples").checked;
+
+      recipe.ingredients.forEach(i => {
+        if (excludeStaples && i.staple) return;
+
+        const storeInfo = getStoreItemName(i.name);
+        if (!storeInfo) return; // Ignore free water
+
+        const existingItem = shoppingList.find(item => item.storeLabel === storeInfo.storeLabel);
+
+        if (!existingItem) {
+          shoppingList.push({
+            storeLabel: storeInfo.storeLabel,
+            cost: storeInfo.approxCost
+          });
+        }
+      });
+
+      checkBudgetExceeded();
+      updateShoppingListUI();
+    }
+
+    function checkBudgetExceeded() {
+      const budgetVal = parseFloat(document.getElementById("budgetRange").value);
+      const cartTotal = calculateCartTotal();
+
+      if (cartTotal > budgetVal) {
+        showBudgetBanner(`⚠️ Budget Warning: Your cart total ($${cartTotal.toFixed(2)}) exceeds your set grocery budget limit of $${budgetVal.toFixed(2)}!`);
+      }
+    }
+
+    function calculateCartTotal() {
+      return shoppingList.reduce((acc, item) => acc + item.cost, 0);
+    }
+
+    function showBudgetBanner(message) {
+      const banner = document.getElementById("budgetWarningBanner");
+      const text = document.getElementById("bannerWarningText");
+      text.textContent = message;
+      banner.classList.remove("hidden");
+      banner.classList.add("flex");
+    }
+
+    function dismissBudgetBanner() {
+      const banner = document.getElementById("budgetWarningBanner");
+      banner.classList.add("hidden");
+      banner.classList.remove("flex");
+    }
+
+    function updateShoppingListUI() {
+      document.getElementById("cartCount").textContent = shoppingList.length;
+      const container = document.getElementById("shoppingListItems");
+      const totalEl = document.getElementById("cartEstTotal");
+      
+      const cartTotal = calculateCartTotal();
+      totalEl.textContent = `$${cartTotal.toFixed(2)}`;
+
+      if (shoppingList.length === 0) {
+        container.innerHTML = `<p class="text-slate-400 text-center py-8">Your shopping list is currently empty. Click "+ Add to Grocery List" on any recipe!</p>`;
+        return;
+      }
+
+      container.innerHTML = shoppingList.map((item, idx) => `
+        <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+          <div>
+            <span class="font-bold text-slate-800 text-sm">${item.storeLabel}</span>
+            <span class="block text-[10px] text-emerald-600 font-bold">~$${item.cost.toFixed(2)} est. store price</span>
+          </div>
+          <button onclick="removeFromShoppingList(${idx})" class="bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 text-xs font-bold px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1">
+            ✓ Already Have
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function removeFromShoppingList(index) {
+      shoppingList.splice(index, 1);
+      updateShoppingListUI();
+    }
+
+    function clearShoppingList() {
+      shoppingList = [];
+      dismissBudgetBanner();
+      updateShoppingListUI();
+    }
+
+    function copyShoppingList() {
+      if (shoppingList.length === 0) return;
+      const cartTotal = calculateCartTotal();
+      const textToCopy = `🛒 Campus Eats Grocery Store List (Est. Total: $${cartTotal.toFixed(2)}):\n` + shoppingList.map(i => `- ${i.storeLabel} (~$${i.cost.toFixed(2)})`).join('\n');
+      navigator.clipboard.writeText(textToCopy);
+      alert("Shopping list copied to clipboard!");
+    }
+
+    function toggleShoppingListModal() {
+      const modal = document.getElementById("shoppingListModal");
+      modal.classList.toggle("hidden");
+      modal.classList.toggle("flex");
+    }
+
+    initPantryUI();
+    updateFilters();
+  </script>
+</body>
+</html>
